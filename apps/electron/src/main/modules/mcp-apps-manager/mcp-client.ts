@@ -8,6 +8,7 @@ import {
   MCPServerConfig,
   MCPConnectionResult,
   MCPInputParam,
+  ensureNpxYesFlag,
 } from "@mcp_router/shared";
 
 /**
@@ -116,9 +117,14 @@ export class MCPClient {
         };
 
         // Use Stdio transport for local servers
+        const argsWithYes = ensureNpxYesFlag(
+          server.command,
+          server.args,
+        ) ?? server.args;
+
         const transport = new StdioClientTransport({
           command: server.command,
-          args: server.args,
+          args: argsWithYes,
           env: mergedEnv,
         });
         await client.connect(transport);

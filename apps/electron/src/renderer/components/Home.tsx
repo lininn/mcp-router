@@ -131,11 +131,63 @@ const Home: React.FC = () => {
     const mcpServers: Record<string, any> = {};
 
     servers.forEach((server) => {
-      mcpServers[server.name] = {
-        command: server.command,
-        args: server.args || [],
-        env: server.env || {},
-      };
+      const toolPermissions = server.toolPermissions || {};
+      const alwaysAllow = Object.entries(toolPermissions)
+        .filter(([, allowed]) => allowed === true)
+        .map(([tool]) => tool);
+      const neverAllow = Object.entries(toolPermissions)
+        .filter(([, allowed]) => allowed === false)
+        .map(([tool]) => tool);
+
+      if (server.serverType === "local") {
+        const localConfig: Record<string, unknown> = {
+          command: server.command,
+        };
+        if (server.args && server.args.length > 0) {
+          localConfig.args = server.args;
+        }
+        if (server.env && Object.keys(server.env).length > 0) {
+          localConfig.env = server.env;
+        }
+        if (server.description) {
+          localConfig.description = server.description;
+        }
+        if (alwaysAllow.length > 0) {
+          localConfig.alwaysAllow = alwaysAllow;
+        }
+        if (neverAllow.length > 0) {
+          localConfig.neverAllow = neverAllow;
+        }
+        mcpServers[server.name] = localConfig;
+      } else {
+        const remoteConfig: Record<string, unknown> = {
+          type:
+            server.serverType === "remote-streamable"
+              ? "streamable-http"
+              : "http",
+        };
+
+        if (server.remoteUrl) {
+          remoteConfig.url = server.remoteUrl;
+        }
+        if (server.env && Object.keys(server.env).length > 0) {
+          remoteConfig.env = server.env;
+        }
+        if (server.bearerToken) {
+          remoteConfig.authorization = `Bearer ${server.bearerToken}`;
+        }
+        if (alwaysAllow.length > 0) {
+          remoteConfig.alwaysAllow = alwaysAllow;
+        }
+        if (neverAllow.length > 0) {
+          remoteConfig.neverAllow = neverAllow;
+        }
+        if (server.description) {
+          remoteConfig.description = server.description;
+        }
+
+        mcpServers[server.name] = remoteConfig;
+      }
     });
 
     const exportData = {

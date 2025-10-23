@@ -3,7 +3,7 @@ import {
   SqliteManager,
   getSqliteManager,
 } from "../../infrastructure/database/sqlite-manager";
-import { MCPServer, MCPServerConfig } from "@mcp_router/shared";
+import { MCPServer, MCPServerConfig, ensureNpxYesFlag } from "@mcp_router/shared";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -143,7 +143,8 @@ export class McpServerManagerRepository extends BaseRepository<MCPServer> {
         "入力パラメータ",
         undefined,
       );
-      const args = this.safeParseJSON<any[]>(row.args, "引数", []);
+      const args = this.safeParseJSON<string[]>(row.args, "引数", []);
+      const normalizedArgs = ensureNpxYesFlag(command, args) ?? args;
       const remoteUrl = row.remote_url;
 
       // エンティティオブジェクトを構築
@@ -151,7 +152,7 @@ export class McpServerManagerRepository extends BaseRepository<MCPServer> {
         id: row.id,
         name: row.name,
         command: command || "",
-        args: args,
+        args: normalizedArgs,
         env: env,
         autoStart: !!row.auto_start,
         disabled: !!row.disabled,
@@ -246,6 +247,11 @@ export class McpServerManagerRepository extends BaseRepository<MCPServer> {
         status: "stopped",
         logs: [],
       };
+
+      const normalizedArgs = ensureNpxYesFlag(server.command, server.args);
+      if (normalizedArgs !== server.args) {
+        server.args = normalizedArgs;
+      }
 
       // リポジトリに追加
       this.add(server);
@@ -363,6 +369,14 @@ export class McpServerManagerRepository extends BaseRepository<MCPServer> {
         resources: existingServer.resources,
         prompts: existingServer.prompts,
       };
+
+      const normalizedArgs = ensureNpxYesFlag(
+        updatedServer.command,
+        updatedServer.args,
+      );
+      if (normalizedArgs !== updatedServer.args) {
+        updatedServer.args = normalizedArgs;
+      }
 
       // 行データを生成（同期）
       const row = this.mapEntityToRowForUpdate(updatedServer, createdAt);

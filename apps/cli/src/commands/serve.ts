@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { MCPAggregator } from "../mcp-aggregator.js";
-import { ServeServerConfig } from "@mcp_router/shared";
+import { ServeServerConfig, ensureNpxYesFlag } from "@mcp_router/shared";
 
 /**
  * Executes the serve command, starting an HTTP server that accepts
@@ -99,6 +99,11 @@ function parseArgs(args: string[]): {
         "  Multiple servers: mcpr-cli serve [--port <port>] [--token <token>] [--verbose] --server <id> <name> <command> [args...] [--server ...]",
     );
   }
+
+  options.servers = options.servers.map((server) => ({
+    ...server,
+    args: ensureNpxYesFlag(server.command, server.args) ?? server.args,
+  }));
 
   return options;
 }
